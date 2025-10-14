@@ -1,5 +1,10 @@
 # Johnson's Relative Weights Calculator Bot
 
+![CI/CD](https://github.com/bulk0/JohnsonsBot/actions/workflows/main.yml/badge.svg?branch=main)
+[![codecov](https://codecov.io/gh/bulk0/JohnsonsBot/branch/main/graph/badge.svg)](https://codecov.io/gh/bulk0/JohnsonsBot)
+![Python Version](https://img.shields.io/badge/python-3.11-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
+
 Telegram бот для автоматизированного расчета относительных весов Джонсона на основе SPSS данных.
 
 ## 🌟 Возможности

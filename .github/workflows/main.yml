@@ -1,0 +1,73 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov flake8
+    
+    - name: Run tests
+      run: |
+        pytest --cov=./ --cov-report=xml
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v2
+      with:
+        file: ./coverage.xml
+        fail_ci_if_error: true
+
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Login to Yandex Cloud Container Registry
+      uses: yc-actions/yc-cr-login@v1
+      with:
+        yc-sa-json-credentials: ${{ secrets.YC_SA_JSON }}
+    
+    - name: Build and push Docker image
+      env:
+        CR_REGISTRY: ${{ secrets.YC_REGISTRY }}
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        docker build -t cr.yandex/$CR_REGISTRY/johnsons-bot:$IMAGE_TAG .
+        docker push cr.yandex/$CR_REGISTRY/johnsons-bot:$IMAGE_TAG
+    
+    - name: Deploy to Yandex Cloud
+      env:
+        YC_TOKEN: ${{ secrets.YC_TOKEN }}
+        YC_CLOUD_ID: ${{ secrets.YC_CLOUD_ID }}
+        YC_FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
+      run: |
+        curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash
+        yc config set token $YC_TOKEN
+        yc config set cloud-id $YC_CLOUD_ID
+        yc config set folder-id $YC_FOLDER_ID
+        yc serverless container revision deploy \
+          --container-name johnsons-bot \
+          --image cr.yandex/${{ secrets.YC_REGISTRY }}/johnsons-bot:${{ github.sha }} \
+          --cores 1 \
+          --memory 512M \
+          --concurrency 1 \
+          --execution-timeout 30s \
+          --service-account-id ${{ secrets.YC_SERVICE_ACCOUNT_ID }}
