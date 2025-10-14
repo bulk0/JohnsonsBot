@@ -1,0 +1,33 @@
+# Secrets and environment variables
+.env
+*.key
+*.pem
+*.token
+
+# Logs and temporary files
+*.log
+bot.log
+bot_output.log
+temp/
+*.tmp
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Project specific
+*.sav
+results/
+test_results/
+check_recults/
