@@ -14,28 +14,27 @@ jobs:
       - name: Install YC CLI
         run: |
           curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash
-          echo "/home/runner/yandex-cloud/bin" >> $GITHUB_PATH
+          echo 'yc' >> $GITHUB_PATH
 
-      - name: Configure YC CLI
+      - name: Configure YC
         env:
-          YC_SA_KEY_ID: ${{ secrets.YC_SERVICE_ACCOUNT_KEY_ID }}
-          YC_SA_KEY: ${{ secrets.YC_SERVICE_ACCOUNT_SECRET_KEY }}
+          YC_SERVICE_ACCOUNT_KEY_ID: ${{ secrets.YC_SERVICE_ACCOUNT_KEY_ID }}
+          YC_SERVICE_ACCOUNT_SECRET_KEY: ${{ secrets.YC_SERVICE_ACCOUNT_SECRET_KEY }}
+          YC_CLOUD_ID: ${{ secrets.YC_CLOUD_ID }}
+          YC_FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
         run: |
-          echo "$YC_SA_KEY" > sa-key.json
-          yc config set service-account-key sa-key.json
-          yc config set cloud-id ${{ secrets.YC_CLOUD_ID }}
-          yc config set folder-id ${{ secrets.YC_FOLDER_ID }}
-          rm sa-key.json
-
-      - name: Login to Yandex Cloud Container Registry
-        run: |
-          yc container registry configure-docker
+          yc config profile create sa-profile
+          yc config set service-account-key $YC_SERVICE_ACCOUNT_KEY_ID
+          yc config set service-account-key-id $YC_SERVICE_ACCOUNT_KEY_ID
+          yc config set cloud-id $YC_CLOUD_ID
+          yc config set folder-id $YC_FOLDER_ID
 
       - name: Build and push Docker image
         env:
           CR_REGISTRY: ${{ secrets.YC_REGISTRY }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
+          yc container registry configure-docker
           docker build -t cr.yandex/$CR_REGISTRY/johnsons-bot:$IMAGE_TAG .
           docker push cr.yandex/$CR_REGISTRY/johnsons-bot:$IMAGE_TAG
 
