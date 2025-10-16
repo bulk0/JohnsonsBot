@@ -30,4 +30,5 @@ ENV/
 *.sav
 results/
 test_results/
+test_data/
 check_recults/

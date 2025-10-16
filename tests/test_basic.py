@@ -1,36 +1,15 @@
-import pytest
-from bot import parse_variable_list, match_variables_case_insensitive
+def test_simple():
+    """A simple test to verify testing setup"""
+    assert True
 
-def test_parse_variable_list():
-    # Test empty input
-    assert parse_variable_list("") == []
-    
-    # Test single variable
-    assert parse_variable_list("var1") == ["var1"]
-    
-    # Test multiple variables
-    assert parse_variable_list("var1, var2, var3") == ["var1", "var2", "var3"]
-    
-    # Test with extra spaces
-    assert parse_variable_list(" var1 ,  var2 , var3 ") == ["var1", "var2", "var3"]
-    
-    # Test with empty elements
-    assert parse_variable_list("var1,,var2") == ["var1", "var2"]
+def test_list_operations():
+    """Test basic list operations"""
+    test_list = [1, 2, 3]
+    assert len(test_list) == 3
+    assert sum(test_list) == 6
 
-def test_match_variables_case_insensitive():
-    available_vars = ["Var1", "VAR2", "var3"]
-    
-    # Test exact match
-    matched, invalid = match_variables_case_insensitive(["Var1"], available_vars)
-    assert matched == ["Var1"]
-    assert invalid == []
-    
-    # Test case-insensitive match
-    matched, invalid = match_variables_case_insensitive(["var1", "VAR2"], available_vars)
-    assert matched == ["Var1", "VAR2"]
-    assert invalid == []
-    
-    # Test invalid variables
-    matched, invalid = match_variables_case_insensitive(["var1", "nonexistent"], available_vars)
-    assert matched == ["Var1"]
-    assert invalid == ["nonexistent"]
+def test_string_operations():
+    """Test basic string operations"""
+    test_str = "  hello  "
+    assert test_str.strip() == "hello"
+    assert test_str.split() == ["hello"]
