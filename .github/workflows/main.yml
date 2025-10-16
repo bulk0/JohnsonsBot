@@ -1,37 +1,39 @@
-name: CI/CD
+name: Deploy to Yandex Cloud
 
 on:
   push:
-    branches: [ main ]
-  pull_request:
     branches: [ main ]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
-    - uses: actions/checkout@v2
-    
-    - name: Login to Yandex Cloud Container Registry
-      uses: yc-actions/yc-cr-login@v1
-      with:
-        yc-sa-json-credentials: ${{ secrets.YC_SA_JSON }}
-    
-    - name: Build and push Docker image
-      env:
-        CR_REGISTRY: ${{ secrets.YC_REGISTRY }}
-        IMAGE_TAG: ${{ github.sha }}
-      run: |
-        docker build -t cr.yandex/$CR_REGISTRY/johnsons-bot:$IMAGE_TAG .
-        docker push cr.yandex/$CR_REGISTRY/johnsons-bot:$IMAGE_TAG
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Deploy to Yandex Cloud
-      uses: yc-actions/yc-cli@v1
-      with:
-        credentials: ${{ secrets.YC_SA_JSON }}
-        command: |
-          serverless container revision deploy \
+      - name: Configure Yandex Cloud
+        uses: yandex-cloud/actions/configure@v1
+        with:
+          cloud-id: ${{ secrets.YC_CLOUD_ID }}
+          folder-id: ${{ secrets.YC_FOLDER_ID }}
+          key-id: ${{ secrets.YC_SERVICE_ACCOUNT_KEY_ID }}
+          service-account-key: ${{ secrets.YC_SERVICE_ACCOUNT_SECRET_KEY }}
+
+      - name: Login to Yandex Cloud Container Registry
+        run: |
+          yc container registry configure-docker
+
+      - name: Build and push Docker image
+        env:
+          CR_REGISTRY: ${{ secrets.YC_REGISTRY }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t cr.yandex/$CR_REGISTRY/johnsons-bot:$IMAGE_TAG .
+          docker push cr.yandex/$CR_REGISTRY/johnsons-bot:$IMAGE_TAG
+
+      - name: Deploy to Serverless Container
+        run: |
+          yc serverless container revision deploy \
             --container-name johnsons-bot \
             --image cr.yandex/${{ secrets.YC_REGISTRY }}/johnsons-bot:${{ github.sha }} \
             --cores 1 \
