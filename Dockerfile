@@ -13,6 +13,8 @@ COPY requirements.txt .
 COPY bot.py .
 COPY weights_handler.py .
 COPY spss_handlers.py .
+COPY johnson_weights.py .
+COPY output_generator.py .
 COPY file_handlers/ ./file_handlers/
 
 # Установка зависимостей Python
