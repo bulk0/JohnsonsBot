@@ -23,21 +23,14 @@ jobs:
           curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash
           echo "$HOME/.yc/bin" >> $GITHUB_PATH
 
-      # 3. Настроить профиль Yandex Cloud с помощью сервисного аккаунта
-      - name: 🔐 Настроить доступ к Yandex Cloud
-        uses: yandex-cloud/actions/configure@v1
+      # 3. Логин в Yandex Cloud Container Registry
+      - name: 🔐 Login to Yandex Cloud CR
+        id: login-cr
+        uses: yc-actions/yc-cr-login@v1
         with:
-          cloud-id: ${{ secrets.YC_CLOUD_ID }}
-          folder-id: ${{ secrets.YC_FOLDER_ID }}
-          key-id: ${{ secrets.YC_SERVICE_ACCOUNT_KEY_ID }}
-          service-account-key: ${{ secrets.YC_SERVICE_ACCOUNT_SECRET_KEY }}
+          yc-sa-json-credentials: ${{ secrets.YC_SERVICE_ACCOUNT_SECRET_KEY }}
 
-      # 4. Настроить доступ к Container Registry
-      - name: 🐳 Настроить Container Registry
-        run: |
-          yc container registry configure-docker
-
-      # 5. Собрать и загрузить Docker образ
+      # 4. Собрать и загрузить Docker образ
       - name: 📦 Собрать и загрузить Docker образ
         env:
           CR_REGISTRY: ${{ secrets.YC_REGISTRY }}
@@ -46,14 +39,18 @@ jobs:
           docker build -t cr.yandex/$CR_REGISTRY/johnsons-bot:$IMAGE_TAG .
           docker push cr.yandex/$CR_REGISTRY/johnsons-bot:$IMAGE_TAG
 
-      # 6. Развернуть в Serverless Containers
+      # 5. Развернуть в Serverless Containers
       - name: 🚀 Развернуть в Serverless Containers
-        run: |
-          yc serverless container revision deploy \
-            --container-name johnsons-bot \
-            --image cr.yandex/${{ secrets.YC_REGISTRY }}/johnsons-bot:${{ github.sha }} \
-            --cores 1 \
-            --memory 512M \
-            --concurrency 1 \
-            --execution-timeout 30s \
-            --service-account-id ${{ secrets.YC_SERVICE_ACCOUNT_ID }}
+        id: deploy-sls
+        uses: yc-actions/yc-sls-container-deploy@v1
+        with:
+          yc-sa-json-credentials: ${{ secrets.YC_SERVICE_ACCOUNT_SECRET_KEY }}
+          container-name: johnsons-bot
+          folder-id: ${{ secrets.YC_FOLDER_ID }}
+          revision-image-url: cr.yandex/${{ secrets.YC_REGISTRY }}/johnsons-bot:${{ github.sha }}
+          revision-service-account-id: ${{ secrets.YC_SERVICE_ACCOUNT_ID }}
+          revision-cores: 1
+          revision-memory: 512Mb
+          revision-core-fraction: 100
+          revision-concurrency: 1
+          revision-execution-timeout: 30s
