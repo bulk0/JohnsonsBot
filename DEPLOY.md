@@ -59,15 +59,62 @@ yc serverless container revision deploy \
     --service-account-id <service-account-id>
 ```
 
-### 5. Проверка деплоя
+### 5. Настройка Webhook
+
+Бот работает через webhook (Telegram отправляет обновления на ваш контейнер).
+
+#### 5.1. Получить URL контейнера
 
 ```bash
-# Просмотр логов
-yc serverless container logs --name johnsons-bot
-
-# Просмотр статуса
-yc serverless container list
+yc serverless container get johnsons-bot
 ```
+
+Скопируйте URL (например: `https://xxxxx.containers.yandexcloud.net`)
+
+#### 5.2. Добавить секреты в GitHub
+
+1. GitHub → **Settings** → **Secrets and variables** → **Actions**
+2. Добавьте секреты:
+   - **`WEBHOOK_URL`** = URL контейнера (без слеша в конце)
+   - **`TELEGRAM_BOT_TOKEN`** = токен бота от @BotFather
+   - **`YC_SERVICE_ACCOUNT_SECRET_KEY`** = JSON ключ сервисного аккаунта
+   - **`YC_FOLDER_ID`** = ID каталога
+   - **`YC_REGISTRY`** = ID Container Registry
+   - **`YC_SERVICE_ACCOUNT_ID`** = ID сервисного аккаунта
+
+#### 5.3. Запустить GitHub Actions
+
+После добавления секретов push в main запустит автоматический деплой:
+
+```bash
+git push origin main
+```
+
+Или запустите вручную: **GitHub Actions** → **Run workflow**
+
+#### 5.4. Проверить webhook
+
+```bash
+# Проверить настройку webhook
+curl "https://api.telegram.org/bot<YOUR_TOKEN>/getWebhookInfo"
+
+# Должен показать ваш URL контейнера
+```
+
+### 6. Проверка работы
+
+```bash
+# Просмотр логов в реальном времени
+yc serverless container logs johnsons-bot --follow
+
+# Просмотр статуса контейнера
+yc serverless container list
+
+# Список ревизий
+yc serverless container revision list --container-name johnsons-bot
+```
+
+**Тестирование:** Откройте Telegram и отправьте боту `/start`
 
 ## Важные замечания
 
@@ -79,14 +126,36 @@ yc serverless container list
 
 4. **Timeout**: Установлен таймаут в 30 секунд. Если ваши операции требуют больше времени, увеличьте значение `execution-timeout`.
 
+## Локальная разработка
+
+Для локальной разработки бот автоматически использует **polling** режим:
+
+```bash
+# Создайте .env файл (не коммитится в git)
+echo "TELEGRAM_BOT_TOKEN=your_token_here" > .env
+
+# Установите зависимости
+pip install -r requirements.txt
+
+# Запустите бота локально
+python bot.py
+
+# В логах увидите: "Starting bot in polling mode (local development)"
+```
+
+**Важно:** Не устанавливайте `WEBHOOK_URL` в `.env` для локальной разработки!
+
 ## Обновление бота
 
-Для обновления бота:
+Через GitHub Actions (рекомендуется):
 
-1. Внесите изменения в код
-2. Соберите новый Docker образ
-3. Загрузите его в реестр
-4. Разверните новую ревизию
+```bash
+git add .
+git commit -m "feat: ваши изменения"
+git push origin main
+```
+
+Или вручную через CLI:
 
 ```bash
 docker build -t cr.yandex/<registry-id>/johnsons-bot:latest .

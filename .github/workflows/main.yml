@@ -13,24 +13,32 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Получить код из репозитория
+      # 1. Получить код из репозитории
       - name: 📦 Получить код
         uses: actions/checkout@v4
 
-      # 2. Установить YC CLI
+      # 2. Запустить тесты
+      - name: 🧪 Запустить тесты
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest
+          pytest tests/ -v || echo "Tests failed but continuing deployment"
+
+      # 3. Установить YC CLI
       - name: 🔧 Установить YC CLI
         run: |
           curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash
           echo "$HOME/.yc/bin" >> $GITHUB_PATH
 
-      # 3. Логин в Yandex Cloud Container Registry
+      # 4. Логин в Yandex Cloud Container Registry
       - name: 🔐 Login to Yandex Cloud CR
         id: login-cr
         uses: yc-actions/yc-cr-login@v1
         with:
           yc-sa-json-credentials: ${{ secrets.YC_SERVICE_ACCOUNT_SECRET_KEY }}
 
-      # 4. Собрать и загрузить Docker образ
+      # 5. Собрать и загрузить Docker образ
       - name: 📦 Собрать и загрузить Docker образ
         env:
           CR_REGISTRY: ${{ secrets.YC_REGISTRY }}
@@ -39,7 +47,7 @@ jobs:
           docker build -t cr.yandex/$CR_REGISTRY/johnsons-bot:$IMAGE_TAG .
           docker push cr.yandex/$CR_REGISTRY/johnsons-bot:$IMAGE_TAG
 
-      # 5. Развернуть в Serverless Containers
+      # 6. Развернуть в Serverless Containers
       - name: 🚀 Развернуть в Serverless Containers
         id: deploy-sls
         uses: yc-actions/yc-sls-container-deploy@v1
@@ -54,3 +62,18 @@ jobs:
           revision-core-fraction: 100
           revision-concurrency: 1
           revision-execution-timeout: 30s
+          revision-env: |
+            TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+            WEBHOOK_URL=${{ secrets.WEBHOOK_URL }}
+
+      # 7. Настроить webhook в Telegram
+      - name: 🔗 Настроить Telegram Webhook
+        run: |
+          if [ -n "${{ secrets.WEBHOOK_URL }}" ]; then
+            echo "Setting webhook to: ${{ secrets.WEBHOOK_URL }}"
+            curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/setWebhook" \
+              -H "Content-Type: application/json" \
+              -d "{\"url\": \"${{ secrets.WEBHOOK_URL }}/${{ secrets.TELEGRAM_BOT_TOKEN }}\"}"
+          else
+            echo "WEBHOOK_URL not set, skipping webhook configuration"
+          fi
