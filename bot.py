@@ -1432,8 +1432,25 @@ def main() -> None:
     application.add_handler(conv_handler)  # Conversation handler second
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, log_message))  # Logging handler for unhandled messages
     
-    # Запуск бота
-    application.run_polling(drop_pending_updates=True)
+    # Получить URL webhook из переменной окружения
+    webhook_url = os.getenv('WEBHOOK_URL')
+    
+    if webhook_url:
+        # Режим webhook для production (Yandex Cloud)
+        logger.info(f"Starting bot in webhook mode: {webhook_url}")
+        
+        # Настройка webhook
+        application.run_webhook(
+            listen="0.0.0.0",
+            port=8080,
+            url_path=TOKEN,
+            webhook_url=f"{webhook_url}/{TOKEN}",
+            drop_pending_updates=True
+        )
+    else:
+        # Режим polling для локальной разработки
+        logger.info("Starting bot in polling mode (local development)")
+        application.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":
     main()
