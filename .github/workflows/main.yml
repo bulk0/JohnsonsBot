@@ -68,9 +68,12 @@ jobs:
 
       # 7. Настроить webhook в Telegram
       - name: 🔗 Настроить Telegram Webhook
-        if: ${{ secrets.WEBHOOK_URL != '' }}
         run: |
-          echo "Setting webhook to: ${{ secrets.WEBHOOK_URL }}"
-          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/setWebhook" \
-            -H "Content-Type: application/json" \
-            -d "{\"url\": \"${{ secrets.WEBHOOK_URL }}/${{ secrets.TELEGRAM_BOT_TOKEN }}\"}"
+          if [ -n "${{ secrets.WEBHOOK_URL }}" ]; then
+            echo "Setting webhook to: ${{ secrets.WEBHOOK_URL }}"
+            curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/setWebhook" \
+              -H "Content-Type: application/json" \
+              -d "{\"url\": \"${{ secrets.WEBHOOK_URL }}/${{ secrets.TELEGRAM_BOT_TOKEN }}\"}"
+          else
+            echo "WEBHOOK_URL not set, skipping webhook configuration"
+          fi
