@@ -33,20 +33,13 @@ jobs:
         YC_FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
       run: |
         curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash
-        source "/home/runner/.bashrc"
-        export PATH=$PATH:/home/runner/yandex-cloud/bin
-        yc config set token $YC_TOKEN
-        yc config set cloud-id $YC_CLOUD_ID
-        yc config set folder-id $YC_FOLDER_ID
+        /home/runner/yandex-cloud/bin/yc config set token $YC_TOKEN
+        /home/runner/yandex-cloud/bin/yc config set cloud-id $YC_CLOUD_ID
+        /home/runner/yandex-cloud/bin/yc config set folder-id $YC_FOLDER_ID
     
     - name: Deploy to Yandex Cloud
-      env:
-        YC_TOKEN: ${{ secrets.YC_TOKEN }}
-        YC_CLOUD_ID: ${{ secrets.YC_CLOUD_ID }}
-        YC_FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
       run: |
-        export PATH=$PATH:/home/runner/yandex-cloud/bin
-        yc serverless container revision deploy \
+        /home/runner/yandex-cloud/bin/yc serverless container revision deploy \
           --container-name johnsons-bot \
           --image cr.yandex/${{ secrets.YC_REGISTRY }}/johnsons-bot:${{ github.sha }} \
           --cores 1 \
