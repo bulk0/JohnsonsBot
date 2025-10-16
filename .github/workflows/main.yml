@@ -11,40 +11,45 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install YC CLI
+      - name: Setup YC CLI
+        id: setup-yc
         run: |
           curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash
-          source "/home/runner/.bashrc"
-          export PATH=$PATH:/home/runner/yandex-cloud/bin
+          echo "$HOME/yandex-cloud/bin" >> $GITHUB_PATH
+          echo "Installed YC CLI to $HOME/yandex-cloud/bin"
+          ls -la $HOME/yandex-cloud/bin
+          which yc || true
+          echo "PATH=$PATH"
+
+      - name: Create service account key file
+        env:
+          YC_SERVICE_ACCOUNT_SECRET_KEY: ${{ secrets.YC_SERVICE_ACCOUNT_SECRET_KEY }}
+        run: |
+          echo "$YC_SERVICE_ACCOUNT_SECRET_KEY" > key.json
 
       - name: Configure YC
         env:
-          YC_SERVICE_ACCOUNT_KEY_ID: ${{ secrets.YC_SERVICE_ACCOUNT_KEY_ID }}
-          YC_SERVICE_ACCOUNT_SECRET_KEY: ${{ secrets.YC_SERVICE_ACCOUNT_SECRET_KEY }}
           YC_CLOUD_ID: ${{ secrets.YC_CLOUD_ID }}
           YC_FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
         run: |
-          export PATH=$PATH:/home/runner/yandex-cloud/bin
-          yc config profile create sa-profile
-          yc config set service-account-key $YC_SERVICE_ACCOUNT_KEY_ID
-          yc config set service-account-key-id $YC_SERVICE_ACCOUNT_KEY_ID
-          yc config set cloud-id $YC_CLOUD_ID
-          yc config set folder-id $YC_FOLDER_ID
+          $HOME/yandex-cloud/bin/yc config profile create sa-profile
+          $HOME/yandex-cloud/bin/yc config set service-account-key key.json
+          $HOME/yandex-cloud/bin/yc config set cloud-id $YC_CLOUD_ID
+          $HOME/yandex-cloud/bin/yc config set folder-id $YC_FOLDER_ID
+          rm key.json
 
       - name: Build and push Docker image
         env:
           CR_REGISTRY: ${{ secrets.YC_REGISTRY }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          export PATH=$PATH:/home/runner/yandex-cloud/bin
-          yc container registry configure-docker
+          $HOME/yandex-cloud/bin/yc container registry configure-docker
           docker build -t cr.yandex/$CR_REGISTRY/johnsons-bot:$IMAGE_TAG .
           docker push cr.yandex/$CR_REGISTRY/johnsons-bot:$IMAGE_TAG
 
       - name: Deploy to Serverless Container
         run: |
-          export PATH=$PATH:/home/runner/yandex-cloud/bin
-          yc serverless container revision deploy \
+          $HOME/yandex-cloud/bin/yc serverless container revision deploy \
             --container-name johnsons-bot \
             --image cr.yandex/${{ secrets.YC_REGISTRY }}/johnsons-bot:${{ github.sha }} \
             --cores 1 \
