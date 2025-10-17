@@ -22,7 +22,7 @@ import os
 from dotenv import load_dotenv
 import pyreadstat
 import tempfile
-from weights_handler import WeightsCalculationHandler
+# Lazy import: weights_handler импортируется при обработке файла
 from spss_handlers import validate_spss_file, read_spss_with_fallbacks, SPSSReadError
 import atexit, sys
 
@@ -983,6 +983,9 @@ async def handle_confirmation(update: Update, context: ContextTypes.DEFAULT_TYPE
 async def start_analysis(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int) -> None:
     """Start the Johnson's Relative Weights analysis"""
     try:
+        # Lazy import тяжелых библиотек только при обработке
+        from weights_handler import WeightsCalculationHandler
+        
         file_path = user_data[user_id]["file_path"]
         dependent_vars = user_data[user_id]["dependent_vars"]
         independent_vars = user_data[user_id]["independent_vars"]

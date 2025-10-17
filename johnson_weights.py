@@ -7,6 +7,7 @@ import re
 import shutil
 from openpyxl import Workbook
 from openpyxl.utils.dataframe import dataframe_to_rows
+# sklearn импортируется здесь один раз для всего модуля
 from sklearn.linear_model import LinearRegression
 from sklearn.experimental import enable_iterative_imputer  # noqa: F401
 from sklearn.impute import IterativeImputer, SimpleImputer
