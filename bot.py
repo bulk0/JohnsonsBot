@@ -1,7 +1,13 @@
+#!/usr/bin/env python3
+import sys
+print("bot.py: Module loading started", file=sys.stderr, flush=True)
+
 import logging
 import re
 from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove, KeyboardButton
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, ConversationHandler
+
+print("bot.py: Telegram imports successful", file=sys.stderr, flush=True)
 
 def get_action_keyboard(actions, help_button=False):
     """Create a keyboard with action buttons and optional help button
@@ -297,7 +303,11 @@ def cleanup_user_data(user_id, delete_file=True):
 # Get token from environment variable
 TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 if not TOKEN:
+    print("ERROR: TELEGRAM_BOT_TOKEN not found in environment!", file=sys.stderr)
+    print(f"Available env vars: {list(os.environ.keys())}", file=sys.stderr)
     raise ValueError("Telegram bot token not found in environment variables. Please set TELEGRAM_BOT_TOKEN in .env file.")
+else:
+    print(f"SUCCESS: Token loaded (length: {len(TOKEN)})", file=sys.stderr)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handler for /start command"""
@@ -1458,4 +1468,11 @@ def main() -> None:
         application.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":
-    main()
+    try:
+        print("Starting bot application...", file=sys.stderr)
+        main()
+    except Exception as e:
+        print(f"FATAL ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc()
+        raise
