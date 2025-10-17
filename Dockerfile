@@ -8,17 +8,17 @@ RUN apt-get update && apt-get install -y \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
-# Копирование файлов проекта
+# Сначала копируем и устанавливаем зависимости (кешируется!)
 COPY requirements.txt .
+RUN pip install --no-cache-dir --prefer-binary -r requirements.txt
+
+# Потом копируем код приложения (изменяется часто)
 COPY bot.py .
 COPY weights_handler.py .
 COPY spss_handlers.py .
 COPY johnson_weights.py .
 COPY output_generator.py .
 COPY file_handlers/ ./file_handlers/
-
-# Установка зависимостей Python
-RUN pip install --no-cache-dir -r requirements.txt
 
 # Открываем порт 8080 для webhook
 EXPOSE 8080
