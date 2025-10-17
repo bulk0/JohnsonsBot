@@ -1321,7 +1321,11 @@ async def process_file(update: Update, context: ContextTypes.DEFAULT_TYPE, user_
 
 def main() -> None:
     """Start the bot"""
-    acquire_lock()
+    # Skip lock file in webhook mode (Serverless Containers)
+    webhook_url = os.getenv('WEBHOOK_URL')
+    if not webhook_url:
+        acquire_lock()  # Only use lock in polling mode
+    
     logger.info(f"Bot starting with PID={os.getpid()}")
     application = Application.builder().token(TOKEN).build()
     
@@ -1435,9 +1439,7 @@ def main() -> None:
     application.add_handler(conv_handler)  # Conversation handler second
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, log_message))  # Logging handler for unhandled messages
     
-    # Получить URL webhook из переменной окружения
-    webhook_url = os.getenv('WEBHOOK_URL')
-    
+    # webhook_url уже получен в начале main()
     if webhook_url:
         # Режим webhook для production (Yandex Cloud)
         logger.info(f"Starting bot in webhook mode: {webhook_url}")
