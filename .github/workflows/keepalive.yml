@@ -1,0 +1,39 @@
+name: 🔄 Keepalive Serverless Container
+
+on:
+  schedule:
+    - cron: "*/10 * * * *" # every 10 minutes
+  workflow_dispatch:
+
+jobs:
+  ping:
+    name: Warm up container
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check secrets present
+        id: check
+        run: |
+          if [ -z "${{ secrets.WEBHOOK_URL }}" ] || [ -z "${{ secrets.TELEGRAM_BOT_TOKEN }}" ]; then
+            echo "missing=true" >> $GITHUB_OUTPUT
+          else
+            echo "missing=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Ping webhook endpoint
+        if: steps.check.outputs.missing == 'false'
+        run: |
+          URL="${{ secrets.WEBHOOK_URL }}"
+          TOKEN="${{ secrets.TELEGRAM_BOT_TOKEN }}"
+          # Normalize URL without trailing slash
+          URL=${URL%/}
+          # 1) Hit token path (expected 405/400/200)
+          curl -m 10 -sS -o /dev/null -w "%{http_code}\n" "$URL/$TOKEN" || true
+          # 2) Fallback ping to root
+          curl -m 5 -sS -I "$URL" || true
+
+      - name: Note when secrets are missing
+        if: steps.check.outputs.missing == 'true'
+        run: echo "WEBHOOK_URL or TELEGRAM_BOT_TOKEN not set; keepalive skipped"
+
+

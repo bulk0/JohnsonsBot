@@ -8,7 +8,6 @@ import pandas as pd
 import logging
 import shutil
 import subprocess
-import pyreadstat
 
 logger = logging.getLogger(__name__)
 
@@ -199,6 +198,9 @@ class WeightsCalculationHandler:
         """
         logger = logging.getLogger(__name__)
         
+        # Defer heavy import to reduce cold start time
+        import pyreadstat
+
         # First try to detect file info
         file_info = self._detect_file_info(input_file)
         if file_info:

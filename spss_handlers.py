@@ -8,7 +8,6 @@ import tempfile
 from typing import Dict, Any, Tuple, List, Optional
 import logging
 import pandas as pd
-import pyreadstat
 
 logger = logging.getLogger(__name__)
 
@@ -203,6 +202,8 @@ def read_spss_with_fallbacks(file_path: str) -> Tuple[pd.DataFrame, object]:
     Raises:
         SPSSReadError: If file cannot be read with any method
     """
+    # Defer heavy import to reduce cold start time
+    import pyreadstat
     attempts = []
     file_info = detect_file_format(file_path)
     

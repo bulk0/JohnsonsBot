@@ -5,6 +5,7 @@ print("bot.py: Module loading started", file=sys.stderr, flush=True)
 import logging
 import re
 from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove, KeyboardButton
+from telegram.constants import ChatAction
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, ConversationHandler
 
 print("bot.py: Telegram imports successful", file=sys.stderr, flush=True)
@@ -25,6 +26,7 @@ def get_action_keyboard(actions, help_button=False):
         
     return ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
 import os
+import asyncio
 from dotenv import load_dotenv
 import tempfile
 # Lazy imports: heavy modules (spss_handlers, pyreadstat, weights_handler) are imported only when needed
@@ -1005,6 +1007,19 @@ async def start_analysis(update: Update, context: ContextTypes.DEFAULT_TYPE, use
         dependent_vars = user_data[user_id]["dependent_vars"]
         independent_vars = user_data[user_id]["independent_vars"]
         subgroups = user_data[user_id]["subgroups"]
+        chat_id = update.effective_chat.id
+
+        # Keepalive typing while heavy work is running
+        stop_typing = False
+        async def typing_pulse():
+            try:
+                while not stop_typing:
+                    await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
+                    await asyncio.sleep(8)
+            except Exception:
+                return
+
+        typing_task = asyncio.create_task(typing_pulse())
         
         # Initialize weights handler
         handler = WeightsCalculationHandler()
@@ -1027,6 +1042,27 @@ async def start_analysis(update: Update, context: ContextTypes.DEFAULT_TYPE, use
         # Determine analysis type
         analysis_type = "total" if not subgroups else "group"
             
+        # Minimal user-facing milestones (RU/EN)
+        try:
+            # Start per dependent (first few only to avoid spam)
+            preview_vars = dependent_vars[:3]
+            for var in preview_vars:
+                await update.message.reply_text(
+                    f"📊 Начинаю расчёт для: {var}\n📊 Starting calculation for: {var}"
+                )
+            if len(dependent_vars) > 3:
+                await update.message.reply_text(
+                    f"📊 И ещё {len(dependent_vars) - 3} зависимых переменных\n"
+                    f"📊 And {len(dependent_vars) - 3} more dependent variables"
+                )
+            if subgroups:
+                await update.message.reply_text(
+                    f"🔍 Подгруппы: {', '.join(subgroups)}\n🔍 Subgroups: {', '.join(subgroups)}"
+                )
+            await update.message.reply_text("⚙️ Расчёт весов…\n⚙️ Computing weights…")
+        except Exception:
+            pass
+
         # Call the analysis function
         result = handler.calculate_weights(
             input_file=file_path,
@@ -1038,6 +1074,10 @@ async def start_analysis(update: Update, context: ContextTypes.DEFAULT_TYPE, use
         
         if result['status'] == 'success':
             # Send both Excel and CSV files
+            try:
+                await update.message.reply_text("💾 Сохраняю результаты (Excel/CSV)…\n💾 Saving results (Excel/CSV)…")
+            except Exception:
+                pass
             excel_file = result['results']
             csv_file = excel_file.replace('.xlsx', '.csv')
             
@@ -1067,6 +1107,10 @@ async def start_analysis(update: Update, context: ContextTypes.DEFAULT_TYPE, use
                 "3. Or use /cancel to end the current session"
             )
             await update.message.reply_text(completion_message)
+            try:
+                await update.message.reply_text("🎉 Готово! Расчёт завершён\n🎉 Done! Calculation completed")
+            except Exception:
+                pass
         else:
             await update.message.reply_text(
                 f"❌ Error during analysis: {result['message']}\n"
@@ -1078,6 +1122,11 @@ async def start_analysis(update: Update, context: ContextTypes.DEFAULT_TYPE, use
             "Please try again with different variables."
         )
     finally:
+        try:
+            stop_typing = True
+            await asyncio.sleep(0)
+        except Exception:
+            pass
         # Clean up
         if user_id in user_data:
             if "file_path" in user_data[user_id]:
@@ -1274,6 +1323,16 @@ async def process_file(update: Update, context: ContextTypes.DEFAULT_TYPE, user_
                 await update.message.reply_text(short_report)
             else:
                 await update.message.reply_text(report)
+            # Short validated status for the user (RU/EN)
+            try:
+                await update.message.reply_text(
+                    (
+                        f"✅ Файл валиден. Числовых переменных: {len(numeric_vars)}, строк: {df.shape[0]}\n"
+                        f"✅ File validated. Numeric vars: {len(numeric_vars)}, rows: {df.shape[0]}"
+                    )
+                )
+            except Exception:
+                pass
             
             # Then, send the variable selection message using formatting function
             var_selection_msg = format_variable_list_message(numeric_vars, 'dependent')

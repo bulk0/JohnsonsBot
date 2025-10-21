@@ -5,6 +5,7 @@ import pyreadstat
 import argparse
 import re
 import shutil
+import time
 from openpyxl import Workbook
 from openpyxl.utils.dataframe import dataframe_to_rows
 # sklearn импортируется здесь один раз для всего модуля
@@ -15,6 +16,14 @@ from sklearn.ensemble import ExtraTreesRegressor
 import warnings
 warnings.filterwarnings('ignore')
 
+
+def log_progress(message: str) -> None:
+    """Lightweight heartbeat logger to stdout with timestamp"""
+    try:
+        ts = time.strftime('%Y-%m-%d %H:%M:%S')
+        print(f"[{ts}] {message}", flush=True)
+    except Exception:
+        print(message, flush=True)
 
 def johnson_relative_weights(X, y):
     """
@@ -261,14 +270,14 @@ def calculate_johnson_weights(
     else:
         output_dir = os.path.dirname(input_file) or "."
     
-    print(f"Анализ файла: {input_file}")
-    print(f"Минимальный размер выборки: {min_sample_size}")
+    log_progress(f"Анализ файла: {input_file}")
+    log_progress(f"Минимальный размер выборки: {min_sample_size}")
     
     # Чтение файла SPSS (robust, with fallbacks)
     try:
         from spss_handlers import read_spss_with_fallbacks
         df, meta = read_spss_with_fallbacks(input_file)
-        print(f"Загружено {df.shape[0]} строк и {df.shape[1]} столбцов")
+        log_progress(f"Загружено {df.shape[0]} строк и {df.shape[1]} столбцов")
 
         # Выводим первые 10 переменных для проверки
         print("Первые 10 переменных в базе:")
@@ -422,7 +431,9 @@ def calculate_johnson_weights(
                 return imputed_data
             
             # Perform imputation
+            log_progress("Запуск MICE импутации (IterativeImputer.fit_transform)...")
             X_imputed = imputer.fit_transform(imputed_data[valid_vars])
+            log_progress("MICE импутация завершена")
             
             # Update the original dataframe
             for i, var in enumerate(valid_vars):
@@ -664,7 +675,7 @@ def calculate_johnson_weights(
     
     # Для каждой зависимой переменной
     for dependent_var in dependent_vars:
-        print(f"\nАнализ для зависимой переменной: {dependent_var}")
+        log_progress(f"Анализ для зависимой переменной начат: {dependent_var}")
         
         # Расчет для общей выборки с разными методами импутации
         print("  Расчет для общей выборки")
@@ -695,11 +706,14 @@ def calculate_johnson_weights(
                 print(f"\n--- Обработка импутации {idx+1}/{len(hybrid_dfs)} ---")
                 print(f"Размер датафрейма: {hybrid_df.shape}")
                 print(f"Колонки в датафрейме: {list(hybrid_df.columns)}")
+                log_progress(f"Старт расчёта весов для импутации {idx+1}/{len(hybrid_dfs)}")
                 hybrid_results = calculate_weights(hybrid_df, dependent_var, use_extended_vars=extended_vars)
                 if hybrid_results:
                     print(f"✅ Успешно получены результаты для импутации {idx+1}")
+                    log_progress(f"Импутация {idx+1}: результаты получены")
                 else:
                     print(f"❌ Не удалось получить результаты для импутации {idx+1}")
+                    log_progress(f"Импутация {idx+1}: результатов нет")
                 
                 if hybrid_results:
                     hybrid_r2_values.append(hybrid_results['R-squared'])
@@ -985,10 +999,12 @@ def calculate_johnson_weights(
         
         # Сохраняем файлы
         wb.save(output_file)
+        log_progress("Файл Excel сохранён")
         
         # Save CSV file
         csv_file = output_file.replace('.xlsx', '.csv')
         results_df.to_csv(csv_file, index=False)
+        log_progress("Файл CSV сохранён")
         
         # Single message block
         print(f"\nРезультаты сохранены в папку анализа:")
@@ -999,6 +1015,7 @@ def calculate_johnson_weights(
         print(f"- Исходный файл: source_{input_file_name}")
         print(f"- Метаданные: analysis_info.txt")
         
+        log_progress(f"Сохранение результатов завершено: {output_file}")
         return output_file
         
     except Exception as e:
