@@ -26,10 +26,8 @@ def get_action_keyboard(actions, help_button=False):
     return ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
 import os
 from dotenv import load_dotenv
-import pyreadstat
 import tempfile
-# Lazy import: weights_handler импортируется при обработке файла
-from spss_handlers import validate_spss_file, read_spss_with_fallbacks, SPSSReadError
+# Lazy imports: heavy modules (spss_handlers, pyreadstat, weights_handler) are imported only when needed
 import atexit, sys
 
 LOCK_FILE = os.path.join(tempfile.gettempdir(), "tg_bot.lock")
@@ -107,6 +105,13 @@ telegram_handler.setFormatter(telegram_formatter)
 # Add handlers to logger
 logger.addHandler(file_handler)
 logger.addHandler(telegram_handler)
+
+# 3. Console handler for Cloud Logging visibility
+console_handler = logging.StreamHandler(sys.stdout)
+console_handler.setLevel(logging.INFO)
+console_formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(name)s: %(message)s')
+console_handler.setFormatter(console_formatter)
+logger.addHandler(console_handler)
 
 # Ensure all messages are captured
 logger.propagate = False
@@ -1452,14 +1457,18 @@ def main() -> None:
     # webhook_url уже получен в начале main()
     if webhook_url:
         # Режим webhook для production (Yandex Cloud)
-        logger.info(f"Starting bot in webhook mode: {webhook_url}")
-        
+        # Учитываем требования YC: слушать порт из переменной окружения PORT
+        port = int(os.environ.get('PORT', '8080'))
+        # Безопасно удаляем завершающий слэш у URL
+        effective_webhook_url = f"{webhook_url.rstrip('/')}/{TOKEN}"
+        logger.info(f"Starting bot in webhook mode: {effective_webhook_url} on PORT={port}")
+
         # Настройка webhook
         application.run_webhook(
             listen="0.0.0.0",
-            port=8080,
+            port=port,
             url_path=TOKEN,
-            webhook_url=f"{webhook_url}/{TOKEN}",
+            webhook_url=effective_webhook_url,
             drop_pending_updates=True
         )
     else:
