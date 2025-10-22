@@ -65,6 +65,22 @@ jobs:
             TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
             WEBHOOK_URL=${{ secrets.WEBHOOK_URL }}
 
+      # 6.1. Пост-настройка ревизии: prepared instances = 1
+      - name: 🔧 Установить prepared instances = 1
+        env:
+          YC_SA_KEY: ${{ secrets.YC_SERVICE_ACCOUNT_SECRET_KEY }}
+          FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
+        run: |
+          set -e
+          echo '${{ secrets.YC_SERVICE_ACCOUNT_SECRET_KEY }}' > sa-key.json
+          # Авторизация CLI уже установлена выше, на всякий случай перезапишем профиль
+          yc config set folder-id $FOLDER_ID
+          # Получим ID только что созданной ревизии
+          REV_ID=$(yc serverless container revision list --container-name johnsons-bot --format json | jq -r '.[0].id')
+          echo "Revision: $REV_ID"
+          # Установим минимум подготовленных экземпляров = 1
+          yc serverless container revision update --id "$REV_ID" --min-instances 1
+
       # 7. Настроить webhook в Telegram
       - name: 🔗 Настроить Telegram Webhook
         run: |
