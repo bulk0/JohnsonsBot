@@ -1,4 +1,13 @@
 import os
+import os as _os
+_os.environ.setdefault('JOBLIB_TEMP_FOLDER', '/tmp')
+_os.environ.setdefault('JOBLIB_START_METHOD', 'spawn')
+_os.environ.setdefault('LOKY_MAX_CPU_COUNT', '1')
+_os.environ.setdefault('OMP_NUM_THREADS', '1')
+_os.environ.setdefault('OPENBLAS_NUM_THREADS', '1')
+_os.environ.setdefault('MKL_NUM_THREADS', '1')
+_os.environ.setdefault('NUMEXPR_NUM_THREADS', '1')
+_os.environ.setdefault('SKLEARN_NUM_THREADS', '1')
 import pandas as pd
 import numpy as np
 import pyreadstat
@@ -13,13 +22,6 @@ from sklearn.linear_model import LinearRegression
 from sklearn.experimental import enable_iterative_imputer  # noqa: F401
 from sklearn.impute import IterativeImputer, SimpleImputer
 from sklearn.ensemble import ExtraTreesRegressor
-import os as _os
-_joblib_backend = _os.environ.get('JOBLIB_TEMP_FOLDER', None)
-if _joblib_backend is None:
-    # Force joblib to use a temp dir that exists inside container and avoid multiprocessing fallbacks
-    _os.environ['JOBLIB_TEMP_FOLDER'] = '/tmp'
-    _os.environ['JOBLIB_START_METHOD'] = 'spawn'
-    _os.environ['LOKY_MAX_CPU_COUNT'] = '1'
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -417,7 +419,8 @@ def calculate_johnson_weights(
             estimator=ExtraTreesRegressor(
                 n_estimators=50,
                 min_samples_leaf=10,
-                max_features='sqrt'
+                max_features='sqrt',
+                n_jobs=1
             ),
             initial_strategy='median',
             max_iter=5,
