@@ -57,7 +57,7 @@ jobs:
           revision-image-url: cr.yandex/${{ secrets.YC_REGISTRY }}/johnsons-bot:${{ github.sha }}
           revision-service-account-id: ${{ secrets.YC_SERVICE_ACCOUNT_ID }}
           revision-cores: 1
-          revision-memory: 1024Mb
+          revision-memory: 4096Mb
           revision-core-fraction: 100
           revision-concurrency: 1
           revision-execution-timeout: 60s
