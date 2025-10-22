@@ -13,6 +13,13 @@ from sklearn.linear_model import LinearRegression
 from sklearn.experimental import enable_iterative_imputer  # noqa: F401
 from sklearn.impute import IterativeImputer, SimpleImputer
 from sklearn.ensemble import ExtraTreesRegressor
+import os as _os
+_joblib_backend = _os.environ.get('JOBLIB_TEMP_FOLDER', None)
+if _joblib_backend is None:
+    # Force joblib to use a temp dir that exists inside container and avoid multiprocessing fallbacks
+    _os.environ['JOBLIB_TEMP_FOLDER'] = '/tmp'
+    _os.environ['JOBLIB_START_METHOD'] = 'spawn'
+    _os.environ['LOKY_MAX_CPU_COUNT'] = '1'
 import warnings
 warnings.filterwarnings('ignore')
 

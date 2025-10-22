@@ -975,13 +975,13 @@ async def handle_confirmation(update: Update, context: ContextTypes.DEFAULT_TYPE
         reply_markup = ReplyKeyboardRemove()
         
         if text == 'confirm':
-            # Start the analysis
+            # Start the analysis asynchronously (do not block webhook response)
             await update.message.reply_text(
                 "🔄 Starting Johnson's Relative Weights analysis...\n"
                 "This may take a few moments.",
                 reply_markup=reply_markup
             )
-            await start_analysis(update, context, user_id)
+            asyncio.create_task(start_analysis(update, context, user_id))
             return ConversationHandler.END
         else:  # cancel
             await update.message.reply_text("Operation cancelled.", reply_markup=reply_markup)
@@ -1064,13 +1064,14 @@ async def start_analysis(update: Update, context: ContextTypes.DEFAULT_TYPE, use
         except Exception:
             pass
 
-        # Call the analysis function
-        result = handler.calculate_weights(
-            input_file=file_path,
-            dependent_vars=dependent_vars,
-            independent_vars=independent_vars,
-            analysis_type=analysis_type,
-            subgroups=subgroups if subgroups else None
+        # Call the analysis function in background thread to avoid blocking event loop
+        result = await asyncio.to_thread(
+            handler.calculate_weights,
+            file_path,
+            dependent_vars,
+            independent_vars,
+            analysis_type,
+            subgroups if subgroups else None
         )
         
         if result['status'] == 'success':
