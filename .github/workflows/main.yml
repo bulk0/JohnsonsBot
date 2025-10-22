@@ -28,7 +28,7 @@ jobs:
       - name: 🔧 Установить YC CLI
         run: |
           curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash
-          echo "$HOME/.yc/bin" >> $GITHUB_PATH
+          echo "$HOME/yandex-cloud/bin" >> $GITHUB_PATH
 
       # 4. Логин в Yandex Cloud Container Registry
       - name: 🔐 Login to Yandex Cloud CR
@@ -66,17 +66,23 @@ jobs:
             WEBHOOK_URL=${{ secrets.WEBHOOK_URL }}
 
       # 6.1. Пост-настройка ревизии: prepared instances = 1
+      - name: 🔐 Настроить доступ к Yandex Cloud (CLI)
+        uses: yandex-cloud/actions/configure@v1
+        with:
+          folder-id: ${{ secrets.YC_FOLDER_ID }}
+          service-account-key: ${{ secrets.YC_SERVICE_ACCOUNT_SECRET_KEY }}
+
       - name: 🔧 Установить prepared instances = 1
         env:
           YC_SA_KEY: ${{ secrets.YC_SERVICE_ACCOUNT_SECRET_KEY }}
           FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
         run: |
           set -e
-          echo '${{ secrets.YC_SERVICE_ACCOUNT_SECRET_KEY }}' > sa-key.json
-          # Авторизация CLI уже установлена выше, на всякий случай перезапишем профиль
-          yc config set folder-id $FOLDER_ID
+          # Убедимся, что yc в PATH
+          echo "$HOME/yandex-cloud/bin" >> $GITHUB_PATH
+          export PATH="$HOME/yandex-cloud/bin:$PATH"
           # Получим ID только что созданной ревизии
-          REV_ID=$(yc serverless container revision list --container-name johnsons-bot --format json | jq -r '.[0].id')
+          REV_ID=$(yc serverless container revision list --container-name johnsons-bot --format json | jq -r 'sort_by(.created_at) | last | .id')
           echo "Revision: $REV_ID"
           # Установим минимум подготовленных экземпляров = 1
           yc serverless container revision update --id "$REV_ID" --min-instances 1
