@@ -326,3 +326,70 @@ def validate_spss_file(file_path: str) -> Tuple[bool, str, Optional[Dict]]:
         return False, e.get_user_message(), e.file_info
     except Exception as e:
         return False, f"Validation error: {str(e)}", None
+
+
+def validate_spss_file_fast(file_path: str) -> Tuple[bool, str, Optional[Dict]]:
+    """
+    Fast validation without loading full DataFrame. Checks existence, extension,
+    and parses header/metadata to detect format. Intended to keep UI responsive
+    and defer heavy reading to later steps.
+
+    Returns:
+        Tuple[is_valid, message, file_info]
+        - If header is unknown, marks needs_repair but allows flow to attempt repair later
+    """
+    try:
+        if not os.path.exists(file_path):
+            return False, "File does not exist", None
+
+        if not file_path.lower().endswith('.sav'):
+            return False, "File must be an SPSS (.sav) file", None
+
+        file_info = detect_file_format(file_path)
+        if file_info.get('header_valid') is False:
+            file_info['needs_repair'] = True
+            return True, "File needs repair", file_info
+
+        # Header looks fine; consider file valid for proceeding to lightweight read
+        return True, "Header validated", file_info
+
+    except Exception as e:
+        return False, f"Fast validation error: {str(e)}", None
+
+
+def read_spss_sample(file_path: str, row_limit: int = 500) -> Tuple[pd.DataFrame, object]:
+    """
+    Read a limited number of rows from SPSS to infer schema quickly.
+
+    Uses pyreadstat.read_sav with row_limit and without applying value formats.
+    Falls back through a limited set of encodings based on detect_file_format.
+    """
+    import pyreadstat
+
+    file_info = detect_file_format(file_path)
+    encodings = []
+    if file_info.get('encoding'):
+        encodings.append(file_info['encoding'])
+    encodings.extend([e for e in ['cp1251', 'windows-1251', 'utf-8', 'latin1'] if e not in encodings])
+
+    attempts: List[Dict[str, str]] = []
+    for encoding in encodings:
+        try:
+            df, meta = pyreadstat.read_sav(
+                file_path,
+                encoding=encoding,
+                apply_value_formats=False,
+                row_limit=row_limit
+            )
+            logger.info(f"read_spss_sample: success with encoding {encoding}, rows={len(df)}")
+            return df, meta
+        except Exception as e:
+            attempts.append({'method': f'sample_{encoding}', 'error': str(e)})
+            continue
+
+    # If all failed, raise a consistent error
+    raise SPSSReadError(
+        "Failed to read SPSS sample with any encoding",
+        attempts=attempts,
+        file_info=file_info
+    )

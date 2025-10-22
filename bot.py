@@ -1139,7 +1139,12 @@ async def start_analysis(update: Update, context: ContextTypes.DEFAULT_TYPE, use
 
 async def process_file(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int) -> None:
     """Process the uploaded file and calculate Johnson's weights"""
-    from spss_handlers import validate_spss_file, read_spss_with_fallbacks, SPSSReadError
+    from spss_handlers import (
+        validate_spss_file_fast,
+        read_spss_sample,
+        read_spss_with_fallbacks,
+        SPSSReadError,
+    )
     from file_handlers.repair_handler import SPSSFileRepairHandler
     
     file_path = user_data[user_id]["file_path"]
@@ -1147,10 +1152,10 @@ async def process_file(update: Update, context: ContextTypes.DEFAULT_TYPE, user_
     t_start = time.perf_counter()
     
     try:
-        # First validate the file
+        # Fast validate header/metadata only
         t0 = time.perf_counter()
-        is_valid, message, file_info = await asyncio.to_thread(validate_spss_file, file_path)
-        logger.info(f"process_file: validate_spss_file done in {time.perf_counter() - t0:.3f}s, valid={is_valid}")
+        is_valid, message, file_info = await asyncio.to_thread(validate_spss_file_fast, file_path)
+        logger.info(f"process_file: validate_spss_file_fast done in {time.perf_counter() - t0:.3f}s, valid={is_valid}")
         
         needs_repair = file_info and file_info.get('needs_repair', False)
         if needs_repair or not is_valid:
@@ -1194,11 +1199,11 @@ async def process_file(update: Update, context: ContextTypes.DEFAULT_TYPE, user_
                     "Continuing with the analysis..."
                 )
         else:
-            # Try reading the file normally if no repair needed
+            # Try light reading (sample) if no repair needed, to infer schema quickly
             try:
                 t2 = time.perf_counter()
-                df, meta = await asyncio.to_thread(read_spss_with_fallbacks, file_path)
-                logger.info(f"process_file: read_spss_with_fallbacks done in {time.perf_counter() - t2:.3f}s")
+                df, meta = await asyncio.to_thread(read_spss_sample, file_path, 500)
+                logger.info(f"process_file: read_spss_sample done in {time.perf_counter() - t2:.3f}s, rows={len(df)}")
             except SPSSReadError as e:
                 # If normal reading fails, try repair as fallback
                 await update.message.reply_text(
@@ -1247,8 +1252,8 @@ async def process_file(update: Update, context: ContextTypes.DEFAULT_TYPE, user_
             f"Sample size: {df.shape[0]} rows (minimum required: {min_sample_size})"
         )
         
-        # 2. Variable type validation
-        numeric_vars = df.select_dtypes(include=['int64', 'float64']).columns.tolist()
+        # 2. Variable type validation (based on sample)
+        numeric_vars = df.select_dtypes(include=['int64', 'float64', 'int32', 'float32']).columns.tolist()
         non_numeric_vars = [col for col in df.columns if col not in numeric_vars]
         
         validation_results.append(
@@ -1301,7 +1306,7 @@ async def process_file(update: Update, context: ContextTypes.DEFAULT_TYPE, user_
             "numeric_vars": numeric_vars,
             "categorical_vars": non_numeric_vars,  # Store categorical variables
             "meta": meta,
-            "n_rows": df.shape[0],
+            "n_rows": df.shape[0],  # sample rows count
             "n_cols": df.shape[1],
             "file_info": file_info,
             "file_path": file_path,  # Keep the file path
