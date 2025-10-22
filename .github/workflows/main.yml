@@ -65,27 +65,7 @@ jobs:
             TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
             WEBHOOK_URL=${{ secrets.WEBHOOK_URL }}
 
-      # 6.1. Пост-настройка ревизии: prepared instances = 1
-      - name: 🔐 Настроить доступ к Yandex Cloud (CLI)
-        uses: yandex-cloud/actions/configure@v1
-        with:
-          folder-id: ${{ secrets.YC_FOLDER_ID }}
-          service-account-key: ${{ secrets.YC_SERVICE_ACCOUNT_SECRET_KEY }}
-
-      - name: 🔧 Установить prepared instances = 1
-        env:
-          YC_SA_KEY: ${{ secrets.YC_SERVICE_ACCOUNT_SECRET_KEY }}
-          FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
-        run: |
-          set -e
-          # Убедимся, что yc в PATH
-          echo "$HOME/yandex-cloud/bin" >> $GITHUB_PATH
-          export PATH="$HOME/yandex-cloud/bin:$PATH"
-          # Получим ID только что созданной ревизии
-          REV_ID=$(yc serverless container revision list --container-name johnsons-bot --format json | jq -r 'sort_by(.created_at) | last | .id')
-          echo "Revision: $REV_ID"
-          # Установим минимум подготовленных экземпляров = 1
-          yc serverless container revision update --id "$REV_ID" --min-instances 1
+      # 6.1. Пост-настройка ревизии временно отключена (готовим надёжную CLI-авторизацию)
 
       # 7. Настроить webhook в Telegram
       - name: 🔗 Настроить Telegram Webhook
