@@ -1528,12 +1528,12 @@ def main() -> None:
             port=port,
             url_path=TOKEN,
             webhook_url=effective_webhook_url,
-            drop_pending_updates=True
+            drop_pending_updates=False
         )
     else:
         # Режим polling для локальной разработки
         logger.info("Starting bot in polling mode (local development)")
-        application.run_polling(drop_pending_updates=True)
+        application.run_polling(drop_pending_updates=False)
 
 if __name__ == "__main__":
     try:

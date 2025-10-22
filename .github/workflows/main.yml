@@ -64,6 +64,8 @@ jobs:
           revision-env: |
             TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
             WEBHOOK_URL=${{ secrets.WEBHOOK_URL }}
+          revision-min-instances: 1
+          revision-max-instances: 2
 
       # 6.1. Пост-настройка ревизии временно отключена (готовим надёжную CLI-авторизацию)
 
