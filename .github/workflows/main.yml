@@ -59,7 +59,7 @@ jobs:
           revision-cores: 1
           revision-memory: 1024Mb
           revision-core-fraction: 100
-          revision-concurrency: 1
+          revision-concurrency: 2
           revision-execution-timeout: 60s
           revision-env: |
             TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
