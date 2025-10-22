@@ -1474,7 +1474,16 @@ def main() -> None:
         logger.info(f"Text: {update.message.text}")
         logger.info(f"Current user_data: {user_data.get(update.effective_user.id, 'No user data')}")
         logger.info(f"Current conversation state: {context.user_data}")
-        logger.info(f"Message type: {update.message.content_type}")
+        try:
+            if update.message and update.message.document:
+                mtype = 'document'
+            elif update.message and update.message.text:
+                mtype = 'text'
+            else:
+                mtype = 'other'
+        except Exception:
+            mtype = 'unknown'
+        logger.info(f"Message type: {mtype}")
         logger.info(f"All handlers: {[h.__class__.__name__ for h in application.handlers[0]]}")
         logger.info(f"Active conversation: {conv_handler.check_update(update)}")
         logger.info("=" * 50)

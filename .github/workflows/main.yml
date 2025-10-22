@@ -59,13 +59,13 @@ jobs:
           revision-cores: 1
           revision-memory: 1024Mb
           revision-core-fraction: 100
-          revision-concurrency: 2
+          revision-concurrency: 1
           revision-execution-timeout: 60s
           revision-env: |
             TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
             WEBHOOK_URL=${{ secrets.WEBHOOK_URL }}
           revision-min-instances: 1
-          revision-max-instances: 2
+          revision-max-instances: 1
 
       # 6.1. Пост-настройка ревизии временно отключена (готовим надёжную CLI-авторизацию)
 
