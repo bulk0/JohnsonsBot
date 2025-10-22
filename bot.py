@@ -27,6 +27,7 @@ def get_action_keyboard(actions, help_button=False):
     return ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
 import os
 import asyncio
+import time
 from dotenv import load_dotenv
 import tempfile
 # Lazy imports: heavy modules (spss_handlers, pyreadstat, weights_handler) are imported only when needed
@@ -1142,10 +1143,14 @@ async def process_file(update: Update, context: ContextTypes.DEFAULT_TYPE, user_
     from file_handlers.repair_handler import SPSSFileRepairHandler
     
     file_path = user_data[user_id]["file_path"]
+    logger.info(f"process_file: start for user {user_id}, file {file_path}")
+    t_start = time.perf_counter()
     
     try:
         # First validate the file
-        is_valid, message, file_info = validate_spss_file(file_path)
+        t0 = time.perf_counter()
+        is_valid, message, file_info = await asyncio.to_thread(validate_spss_file, file_path)
+        logger.info(f"process_file: validate_spss_file done in {time.perf_counter() - t0:.3f}s, valid={is_valid}")
         
         needs_repair = file_info and file_info.get('needs_repair', False)
         if needs_repair or not is_valid:
@@ -1157,7 +1162,9 @@ async def process_file(update: Update, context: ContextTypes.DEFAULT_TYPE, user_
             
             # Attempt repair
             repair_handler = SPSSFileRepairHandler(file_path)
-            df, meta, repair_attempts = repair_handler.attempt_repair()
+            t1 = time.perf_counter()
+            df, meta, repair_attempts = await asyncio.to_thread(repair_handler.attempt_repair)
+            logger.info(f"process_file: attempt_repair done in {time.perf_counter() - t1:.3f}s, success={df is not None}")
             
             if df is None:
                 # If repair failed, show what was tried
@@ -1189,7 +1196,9 @@ async def process_file(update: Update, context: ContextTypes.DEFAULT_TYPE, user_
         else:
             # Try reading the file normally if no repair needed
             try:
-                df, meta = read_spss_with_fallbacks(file_path)
+                t2 = time.perf_counter()
+                df, meta = await asyncio.to_thread(read_spss_with_fallbacks, file_path)
+                logger.info(f"process_file: read_spss_with_fallbacks done in {time.perf_counter() - t2:.3f}s")
             except SPSSReadError as e:
                 # If normal reading fails, try repair as fallback
                 await update.message.reply_text(
@@ -1198,7 +1207,9 @@ async def process_file(update: Update, context: ContextTypes.DEFAULT_TYPE, user_
                 )
                 
                 repair_handler = SPSSFileRepairHandler(file_path)
-                df, meta, repair_attempts = repair_handler.attempt_repair()
+                t3 = time.perf_counter()
+                df, meta, repair_attempts = await asyncio.to_thread(repair_handler.attempt_repair)
+                logger.info(f"process_file: fallback attempt_repair done in {time.perf_counter() - t3:.3f}s, success={df is not None}")
                 
                 if df is None:
                     error_msg = (
@@ -1300,6 +1311,7 @@ async def process_file(update: Update, context: ContextTypes.DEFAULT_TYPE, user_
         # Log for debugging
         logger.info(f"Stored user data for user {user_id}: {user_data[user_id]}")
         logger.info(f"Available numeric variables: {numeric_vars}")
+        logger.info(f"process_file: completed preprocessing in {time.perf_counter() - t_start:.3f}s")
         
         # Prepare report
         report = (
