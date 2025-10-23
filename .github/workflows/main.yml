@@ -30,6 +30,12 @@ jobs:
           curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash
           echo "$HOME/yandex-cloud/bin" >> $GITHUB_PATH
 
+      # 3.1. Аутентифицировать YC CLI под сервисным аккаунтом
+      - name: 🔐 Настроить YC CLI auth
+        uses: yandex-cloud/actions/configure@v1
+        with:
+          yc-sa-json-credentials: ${{ secrets.YC_SERVICE_ACCOUNT_SECRET_KEY }}
+
       # 4. Логин в Yandex Cloud Container Registry
       - name: 🔐 Login to Yandex Cloud CR
         id: login-cr
