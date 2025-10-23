@@ -94,9 +94,9 @@ jobs:
             --concurrency 1 \
             --execution-timeout 60s \
             --environment S3_ENDPOINT=storage.yandexcloud.net,S3_REGION=ru-central1,YMQ_QUEUE_URL=${{ vars.YMQ_QUEUE_URL }} \
-            --secret environment-variable=TELEGRAM_BOT_TOKEN,secret-id=${{ vars.LOCKBOX_SECRET_ID }},version-id=latest,key=TELEGRAM_BOT_TOKEN \
-            --secret environment-variable=YC_STORAGE_KEY_ID,secret-id=${{ vars.LOCKBOX_SECRET_ID }},version-id=latest,key=YC_STORAGE_KEY_ID \
-            --secret environment-variable=YC_STORAGE_SECRET_KEY,secret-id=${{ vars.LOCKBOX_SECRET_ID }},version-id=latest,key=YC_STORAGE_SECRET_KEY
+            --secret id=${{ vars.LOCKBOX_SECRET_ID }},version-id=latest,key=TELEGRAM_BOT_TOKEN,environment-variable=TELEGRAM_BOT_TOKEN \
+            --secret id=${{ vars.LOCKBOX_SECRET_ID }},version-id=latest,key=YC_STORAGE_KEY_ID,environment-variable=YC_STORAGE_KEY_ID \
+            --secret id=${{ vars.LOCKBOX_SECRET_ID }},version-id=latest,key=YC_STORAGE_SECRET_KEY,environment-variable=YC_STORAGE_SECRET_KEY
 
       # 6.1. Пост-настройка ревизии временно отключена (готовим надёжную CLI-авторизацию)
 
