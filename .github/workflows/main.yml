@@ -83,7 +83,7 @@ jobs:
             --image cr.yandex/$CR_REGISTRY/johnsons-bot:$IMAGE_TAG \
             --service-account-id ${{ secrets.YC_SERVICE_ACCOUNT_ID }} \
             --cores 1 \
-            --memory 1024Mb \
+            --memory 1024MB \
             --concurrency 1 \
             --execution-timeout 60s \
             --environment S3_ENDPOINT=storage.yandexcloud.net,S3_REGION=ru-central1,YMQ_QUEUE_URL=${{ vars.YMQ_QUEUE_URL }} \
