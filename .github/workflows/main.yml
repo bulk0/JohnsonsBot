@@ -43,8 +43,15 @@ jobs:
           CR_REGISTRY: ${{ secrets.YC_REGISTRY }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
+          export DOCKER_CLIENT_TIMEOUT=300
+          export COMPOSE_HTTP_TIMEOUT=300
+          export DOCKER_MAX_CONCURRENT_UPLOADS=1
           docker build -t cr.yandex/$CR_REGISTRY/johnsons-bot:$IMAGE_TAG .
-          docker push cr.yandex/$CR_REGISTRY/johnsons-bot:$IMAGE_TAG
+          for i in 1 2 3; do \
+            docker push cr.yandex/$CR_REGISTRY/johnsons-bot:$IMAGE_TAG && break || { \
+              echo "docker push failed (attempt $i), retrying..."; sleep $((i*15)); \
+            }; \
+          done
 
       # 6. Развернуть в Serverless Containers
       - name: 🚀 Развернуть в Serverless Containers
