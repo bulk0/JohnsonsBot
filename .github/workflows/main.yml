@@ -72,6 +72,25 @@ jobs:
           revision-min-instances: 1
           revision-max-instances: 1
 
+      # 6.1. Привязать Lockbox секреты (чтобы ручные правки ревизии не затирались)
+      - name: 🔐 Привязать Lockbox секреты к ревизии контейнера
+        run: |
+          CR_REGISTRY=${{ secrets.YC_REGISTRY }}
+          IMAGE_TAG=${{ github.sha }}
+          $HOME/yandex-cloud/bin/yc serverless container revision deploy \
+            --container-name johnsons-bot \
+            --folder-id ${{ secrets.YC_FOLDER_ID }} \
+            --image cr.yandex/$CR_REGISTRY/johnsons-bot:$IMAGE_TAG \
+            --service-account-id ${{ secrets.YC_SERVICE_ACCOUNT_ID }} \
+            --cores 1 \
+            --memory 1024Mb \
+            --concurrency 1 \
+            --execution-timeout 60s \
+            --environment S3_ENDPOINT=storage.yandexcloud.net,S3_REGION=ru-central1,YMQ_QUEUE_URL=${{ vars.YMQ_QUEUE_URL }} \
+            --secret environment-variable=TELEGRAM_BOT_TOKEN,secret-id=${{ vars.LOCKBOX_SECRET_ID }},version-id=latest,key=TELEGRAM_BOT_TOKEN \
+            --secret environment-variable=YC_STORAGE_KEY_ID,secret-id=${{ vars.LOCKBOX_SECRET_ID }},version-id=latest,key=YC_STORAGE_KEY_ID \
+            --secret environment-variable=YC_STORAGE_SECRET_KEY,secret-id=${{ vars.LOCKBOX_SECRET_ID }},version-id=latest,key=YC_STORAGE_SECRET_KEY
+
       # 6.1. Пост-настройка ревизии временно отключена (готовим надёжную CLI-авторизацию)
 
       # 7. Настроить webhook в Telegram
