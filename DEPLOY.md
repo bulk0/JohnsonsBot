@@ -116,6 +116,48 @@ yc serverless container revision list --container-name johnsons-bot
 
 **Тестирование:** Откройте Telegram и отправьте боту `/start`
 
+## Асинхронная обработка задач (YMQ + Worker)
+
+### RU
+
+1. Создайте S3‑бакет для артефактов (вход/выход):
+   - Название: `johnsons-bot-artifacts`
+   - Папки: `uploads/<job_id>/`, `results/<job_id>/`
+2. Создайте очередь YMQ (SQS‑совместимая):
+   - Основная: `johnsons-bot-jobs`
+   - DLQ: `johnsons-bot-jobs-dlq`
+   - Настройте ретраи/backoff по требованиям
+3. Сервисный аккаунт (SA):
+   - Роли: `storage.editor` (на бакет), `ymq.writer` (для webhook), `ymq.reader` (для worker)
+4. Переменные окружения (Actions/Lockbox):
+   - `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `S3_ENDPOINT=storage.yandexcloud.net`, `S3_REGION=ru-central1`
+   - `YMQ_QUEUE_URL` (URL очереди), при использовании SQS API — совместимые ключи
+5. Вебхук‑контейнер:
+   - Загружает `.sav` в S3: `uploads/<job_id>/source.sav`
+   - Публикует задачу в YMQ (payload с параметрами)
+6. Воркер (Cloud Function с триггером YMQ):
+   - Читает сообщение, скачивает файл из S3, считает, пишет результаты в S3 и шлёт прогресс/итог в Telegram
+
+### EN
+
+1. Create S3 bucket for artifacts (input/output):
+   - Name: `johnsons-bot-artifacts`
+   - Folders: `uploads/<job_id>/`, `results/<job_id>/`
+2. Create YMQ queue (SQS‑compatible):
+   - Main: `johnsons-bot-jobs`
+   - DLQ: `johnsons-bot-jobs-dlq`
+   - Configure retries/backoff as needed
+3. Service Account (SA):
+   - Roles: `storage.editor` (bucket), `ymq.writer` (webhook), `ymq.reader` (worker)
+4. Environment variables (Actions/Lockbox):
+   - `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `S3_ENDPOINT=storage.yandexcloud.net`, `S3_REGION=ru-central1`
+   - `YMQ_QUEUE_URL` (queue URL), for SQS API provide compatible credentials
+5. Webhook container:
+   - Uploads `.sav` to S3: `uploads/<job_id>/source.sav`
+   - Publishes job to YMQ (payload with parameters)
+6. Worker (Cloud Function with YMQ trigger):
+   - Consumes message, downloads file from S3, computes, writes results to S3 and sends progress/final output to Telegram
+
 ## Важные замечания
 
 1. **Ресурсы**: В `serverless.yaml` указано 512MB памяти и 1 ядро. Эти значения можно изменить в зависимости от нагрузки.

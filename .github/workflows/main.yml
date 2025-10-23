@@ -57,13 +57,18 @@ jobs:
           revision-image-url: cr.yandex/${{ secrets.YC_REGISTRY }}/johnsons-bot:${{ github.sha }}
           revision-service-account-id: ${{ secrets.YC_SERVICE_ACCOUNT_ID }}
           revision-cores: 1
-          revision-memory: 4096Mb
+          revision-memory: 1024Mb
           revision-core-fraction: 100
           revision-concurrency: 1
           revision-execution-timeout: 60s
           revision-env: |
             TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
             WEBHOOK_URL=${{ secrets.WEBHOOK_URL }}
+            YC_STORAGE_KEY_ID=${{ secrets.YC_STORAGE_KEY_ID }}
+            YC_STORAGE_SECRET_KEY=${{ secrets.YC_STORAGE_SECRET_KEY }}
+            S3_ENDPOINT=storage.yandexcloud.net
+            S3_REGION=ru-central1
+            YMQ_QUEUE_URL=${{ vars.YMQ_QUEUE_URL }}
           revision-min-instances: 1
           revision-max-instances: 1
 
