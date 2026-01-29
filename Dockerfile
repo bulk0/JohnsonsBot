@@ -26,7 +26,7 @@ COPY static/ ./static/
 
 # Copy documentation
 COPY README.md .
-COPY "Multiple Imputations Readme.md" .
+COPY Multiple\ Imputations\ Readme.md .
 
 # Copy sample data if exists (optional)
 COPY sample_data.sav* ./
