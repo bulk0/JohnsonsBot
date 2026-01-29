@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Статус задачи — v{{ version }}</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <script>
+      async function poll() {
+        const res = await fetch(`/api/status/{{ job_id }}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const el = document.getElementById('status');
+        const spinner = document.getElementById('spinner');
+        
+        if (data.status === 'queued') {
+          el.textContent = 'В очереди...';
+        } else if (data.status === 'running') {
+          el.textContent = 'Выполняется расчёт...';
+        } else if (data.status === 'completed') {
+          el.textContent = 'Завершено!';
+          spinner.style.display = 'none';
+          document.getElementById('downloads').style.display = 'flex';
+          clearInterval(window.__timer);
+        } else if (data.status === 'failed') {
+          el.textContent = 'Ошибка';
+          spinner.style.display = 'none';
+          document.getElementById('error').textContent = data.error || 'Произошла ошибка';
+          document.getElementById('error').style.display = 'block';
+          clearInterval(window.__timer);
+        } else {
+          el.textContent = data.status;
+        }
+      }
+      window.addEventListener('load', () => {
+        window.__timer = setInterval(poll, 2000);
+        poll();
+      });
+    </script>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Статус задачи</h1>
+      <div class="card status-block">
+        <div class="row">
+          <span id="spinner" class="spinner"></span>
+          Статус: <b id="status">{{ status }}</b>
+        </div>
+        <div class="row hint">ID задачи: <code>{{ job_id }}</code></div>
+        {% if error %}
+        <div id="error" class="alert" style="display:block">{{ error }}</div>
+        {% else %}
+        <div id="error" class="alert" style="display:none"></div>
+        {% endif %}
+        <div id="downloads" class="row" style="display:none">
+          <a class="btn" href="/download/{{ job_id }}/xlsx">Скачать Excel</a>
+          <a class="btn" href="/download/{{ job_id }}/csv">Скачать CSV</a>
+        </div>
+        <div class="row hint" style="margin-top: 16px;">
+          <b>Примечание:</b> Расчёт может занять от 30 секунд до нескольких минут в зависимости от размера данных и количества подгрупп.
+        </div>
+      </div>
+      <p><a href="/">← На главную</a></p>
+    </div>
+  </body>
+</html>

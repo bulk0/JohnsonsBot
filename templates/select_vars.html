@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Выбор переменных — v{{ version }}</title>
+    <link rel="stylesheet" href="/static/style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>Выбор переменных</h1>
+      {% if error %}
+      <div class="alert">{{ error }}</div>
+      {% endif %}
+      <form action="/start" method="post" class="card">
+        <input type="hidden" name="file_path" value="{{ file_path }}" />
+        <div class="grid">
+          <div>
+            <label>Доступные числовые переменные:</label>
+            <textarea id="numericVarsText" class="list" readonly>{{ numeric_vars_csv }}</textarea>
+          </div>
+          <div>
+            <label>Все переменные:</label>
+            <textarea id="allVarsText" class="list" readonly>{{ all_vars_csv }}</textarea>
+          </div>
+        </div>
+
+        <label for="dependent_vars">Зависимые переменные (через запятую):</label>
+        <input id="dependent_vars" name="dependent_vars" placeholder="например: satisfaction, nps" required />
+
+        <label for="independent_vars">Независимые переменные (мин. 2, через запятую):</label>
+        <input id="independent_vars" name="independent_vars" placeholder="например: quality, price, service" required />
+
+        <label for="subgroups">Подгруппы (опционально, через запятую):</label>
+        <input id="subgroups" name="subgroups" placeholder="например: brand, region" />
+
+        <div class="hint">
+          <b>Подсказка:</b> Скопируйте нужные переменные из списков выше и вставьте в поля ниже.
+        </div>
+
+        <button type="submit">Запустить расчёт</button>
+      </form>
+      <p><a href="/">← На главную</a></p>
+    </div>
+  </body>
+</html>

@@ -1,27 +1,41 @@
+# Johnson's Relative Weights - Web Application
 FROM python:3.11-slim
 
-# Установка рабочей директории
+# Set working directory
 WORKDIR /app
 
-# Установка системных зависимостей
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
-# Сначала копируем и устанавливаем зависимости (кешируется!)
+# Copy and install Python dependencies first (for caching)
 COPY requirements.txt .
 RUN pip install --no-cache-dir --prefer-binary -r requirements.txt
 
-# Потом копируем код приложения (изменяется часто)
-COPY bot.py .
+# Copy application code
+COPY app.py .
 COPY weights_handler.py .
 COPY spss_handlers.py .
 COPY johnson_weights.py .
-COPY output_generator.py .
 COPY file_handlers/ ./file_handlers/
 
-# Открываем порт 8080 для webhook
-EXPOSE 8080
+# Copy templates and static files
+COPY templates/ ./templates/
+COPY static/ ./static/
 
-# Запуск бота
-CMD ["python", "bot.py"]
+# Copy documentation
+COPY README.md .
+COPY "Multiple Imputations Readme.md" .
+
+# Copy sample data if exists (optional)
+COPY sample_data.sav* ./
+
+# Create directories for uploads and results
+RUN mkdir -p temp results
+
+# Expose port (Koyeb will set PORT env variable)
+EXPOSE 8000
+
+# Run with gunicorn for production
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "2", "--timeout", "300", "app:app"]

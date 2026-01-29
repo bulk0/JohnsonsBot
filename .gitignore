@@ -27,8 +27,16 @@ ENV/
 *.swo
 
 # Project specific
-*.sav
 results/
 test_results/
 test_data/
 check_recults/
+
+# Keep sample_data.sav (for demo)
+!sample_data.sav
+
+# Virtual environment
+.venv/
+
+# macOS
+.DS_Store

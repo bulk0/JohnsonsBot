@@ -785,8 +785,9 @@ def calculate_johnson_weights(
                 for subgroup_value in subgroup_values:
                     print(f"    Значение: {subgroup_value}")
                     
-                    # Расчет для подгруппы
-                    subgroup_df = full_df[full_df[subgroup_var] == subgroup_value].copy()
+                    # ВАЖНО: используем исходные данные (df), а не импутированные (full_df)
+                    # чтобы каждый метод импутации работал с оригинальными пропусками
+                    subgroup_df_original = df[df[subgroup_var] == subgroup_value].copy()
                     
                     subgroup_info = {
                         'type': 'Subgroup',
@@ -795,14 +796,14 @@ def calculate_johnson_weights(
                     }
                     
                     # MICE импутация для подгруппы
-                    mice_df = prepare_data_with_imputation(subgroup_df.copy(), dependent_var)
+                    mice_df = prepare_data_with_imputation(subgroup_df_original.copy(), dependent_var)
                     if mice_df is not None:
                         mice_results = calculate_weights(mice_df, dependent_var, subgroup_info)
                         if mice_results:
                             results_mice.append(mice_results)
                     
                     # Гибридная импутация с индикаторами для подгруппы - считаем веса для каждой импутации и усредняем
-                    hybrid_dfs, extended_vars = hybrid_imputation(subgroup_df.copy(), dependent_var, independent_vars)
+                    hybrid_dfs, extended_vars = hybrid_imputation(subgroup_df_original.copy(), dependent_var, independent_vars)
                     if hybrid_dfs:  # проверяем, что список не пустой
                         # Для хранения результатов всех импутаций
                         hybrid_r2_values = []
@@ -855,7 +856,7 @@ def calculate_johnson_weights(
                             print(f"   Using {len(extended_vars)} extended predictors (original + missing indicators)")
                     
                     # Простая импутация для подгруппы
-                    simple_df = simple_imputation(subgroup_df.copy(), dependent_var, independent_vars)
+                    simple_df = simple_imputation(subgroup_df_original.copy(), dependent_var, independent_vars)
                     simple_results = calculate_weights(simple_df, dependent_var, subgroup_info)
                     if simple_results:
                         results_simple.append(simple_results)
@@ -1040,3 +1041,4 @@ def calculate_johnson_weights(
             print("Не удалось сохранить результаты.")
             return None
     
+

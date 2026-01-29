@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Johnson's Relative Weights</title>
+    <link rel="stylesheet" href="/static/style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>Johnson's Relative Weights v{{ version }}</h1>
+      <p class="subtitle">Расчёт относительных весов предикторов с множественной импутацией</p>
+      {% if error %}
+      <div class="alert">{{ error }}</div>
+      {% endif %}
+      <form action="/upload" method="post" enctype="multipart/form-data" class="card">
+        <label for="file">Загрузите SPSS (.sav) файл:</label>
+        <input type="file" id="file" name="file" accept=".sav" required />
+        <button type="submit">Продолжить</button>
+      </form>
+      {% if sample_available %}
+      <div class="card">
+        <b>Нет своего файла?</b>
+        <div style="margin-top:8px">
+          <a class="btn" href="/upload-sample">Использовать демо-файл</a>
+          &nbsp;
+          <a class="btn btn-secondary" href="/sample/download" target="_blank" rel="noopener">Скачать демо-файл</a>
+        </div>
+      </div>
+      {% endif %}
+      <div class="docs">
+        <a href="/docs/readme" target="_blank" rel="noopener">О приложении</a>
+        &nbsp;|&nbsp;
+        <a href="/docs/multiple-imputations" target="_blank" rel="noopener">О методах импутации</a>
+      </div>
+    </div>
+  </body>
+</html>

@@ -1,44 +1,37 @@
-
-
-
 # Git
 .git
 .gitignore
-.gitattributes
 
 # Python
-__pycache__/
+__pycache__
 *.py[cod]
-*$py.class
 *.so
-.Python
-env/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-*.egg-info/
-.installed.cfg
-*.egg
-venv/
+.venv
+venv
+ENV
 
 # IDE
-.idea/
-.vscode/
+.idea
+.vscode
 *.swp
 *.swo
+.cursorrules
+.codeassistant
 
-# Project specific
-*.log
-*.sav
-results/
-test_results/
+# Tests
+tests/
+pytest.ini
+.coveragerc
+requirements-dev.txt
+
+# Temporary files
 temp/
-check_recults/
+results/
+*.log
+*.tmp
+
+# macOS
+.DS_Store
+
+# Documentation (not needed in container, we copy specific files)
+# Keep README.md and Multiple Imputations Readme.md
