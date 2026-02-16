@@ -138,7 +138,10 @@ def simple_imputation(data, dependent_var, independent_vars):
     
     # Импутация средними значениями
     imputer = SimpleImputer(strategy='mean')
-    working_df[independent_vars] = imputer.fit_transform(working_df[independent_vars])
+    # Преобразуем результат в DataFrame с правильными колонками и индексом
+    imputed_values = imputer.fit_transform(working_df[independent_vars])
+    imputed_df = pd.DataFrame(imputed_values, columns=independent_vars, index=working_df.index)
+    working_df[independent_vars] = imputed_df
     
     return working_df
 
