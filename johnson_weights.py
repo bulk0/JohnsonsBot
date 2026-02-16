@@ -136,12 +136,18 @@ def simple_imputation(data, dependent_var, independent_vars):
     for var in independent_vars + [dependent_var]:
         working_df.loc[(working_df[var] == 99) | (working_df[var] == 98), var] = np.nan
     
-    # Импутация средними значениями
-    imputer = SimpleImputer(strategy='mean')
-    # Преобразуем результат в DataFrame с правильными колонками и индексом
-    imputed_values = imputer.fit_transform(working_df[independent_vars])
-    imputed_df = pd.DataFrame(imputed_values, columns=independent_vars, index=working_df.index)
-    working_df[independent_vars] = imputed_df
+    # Импутация средними значениями - обрабатываем каждую колонку отдельно
+    # чтобы избежать проблем с удалением полностью пустых колонок
+    for var in independent_vars:
+        col_data = working_df[var].values.reshape(-1, 1)
+        # Проверяем, есть ли хотя бы одно не-NaN значение
+        if np.isnan(col_data).all():
+            # Если все значения NaN, заполняем нулями (или можно пропустить)
+            working_df[var] = 0
+        else:
+            imputer = SimpleImputer(strategy='mean')
+            imputed_col = imputer.fit_transform(col_data)
+            working_df[var] = imputed_col.ravel()
     
     return working_df
 
