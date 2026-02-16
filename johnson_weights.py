@@ -227,8 +227,10 @@ def hybrid_imputation(data, dependent_var, independent_vars, n_imputations=5):
                     current_df.loc[missing_mask, var] = random_values
         
         # Объединение с индикаторами - ensure indices align
-        # Use concat to properly align indices
-        current_df_combined = pd.concat([current_df, missing_indicators], axis=1)
+        # Reset indices to ensure proper alignment before concat
+        current_df_reset = current_df.reset_index(drop=True)
+        missing_indicators_reset = missing_indicators.reset_index(drop=True)
+        current_df_combined = pd.concat([current_df_reset, missing_indicators_reset], axis=1)
         
         imputed_dfs.append(current_df_combined)
     
@@ -891,9 +893,21 @@ def calculate_johnson_weights(
         print("\n⚠️ WARNING: Нет результатов для гибридного подхода!")
     
     # Добавляем информацию о методе импутации в первый столбец
-    results_df_mice.insert(0, 'Imputation Method', 'MICE')
-    results_df_hybrid.insert(0, 'Imputation Method', 'Hybrid')
-    results_df_simple.insert(0, 'Imputation Method', 'Simple Mean')
+    # Используем присваивание вместо insert для безопасности с пустыми DataFrame
+    if not results_df_mice.empty:
+        results_df_mice.insert(0, 'Imputation Method', 'MICE')
+    else:
+        results_df_mice = pd.DataFrame(columns=['Imputation Method'])
+    
+    if not results_df_hybrid.empty:
+        results_df_hybrid.insert(0, 'Imputation Method', 'Hybrid')
+    else:
+        results_df_hybrid = pd.DataFrame(columns=['Imputation Method'])
+    
+    if not results_df_simple.empty:
+        results_df_simple.insert(0, 'Imputation Method', 'Simple Mean')
+    else:
+        results_df_simple = pd.DataFrame(columns=['Imputation Method'])
     
     # Объединяем результаты в нужном порядке
     results_df = pd.concat([results_df_mice, results_df_hybrid, results_df_simple], axis=0, ignore_index=True)
