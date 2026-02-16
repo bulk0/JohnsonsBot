@@ -128,10 +128,16 @@ class WeightsCalculationHandler:
                 }
                 
         except Exception as e:
+            import traceback
+            error_traceback = traceback.format_exc()
+            logger.error(f"Error during calculation: {str(e)}\n{error_traceback}")
+            print(f"❌ Error during calculation: {str(e)}")
+            print(f"Traceback:\n{error_traceback}")
             return {
                 'status': 'error',
                 'message': f'Error during calculation: {str(e)}',
-                'error': str(e)
+                'error': str(e),
+                'traceback': error_traceback
             }
     
     def _detect_file_info(self, input_file: str) -> dict:

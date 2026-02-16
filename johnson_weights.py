@@ -892,32 +892,52 @@ def calculate_johnson_weights(
     else:
         print("\n⚠️ WARNING: Нет результатов для гибридного подхода!")
     
-    # Добавляем информацию о методе импутации в первый столбец
-    # Используем присваивание вместо insert для безопасности с пустыми DataFrame
+    # Добавляем информацию о методе импутации
+    # Используем присваивание столбца вместо insert для безопасности
     if not results_df_mice.empty:
-        results_df_mice.insert(0, 'Imputation Method', 'MICE')
+        results_df_mice = results_df_mice.copy()
+        results_df_mice['Imputation Method'] = 'MICE'
     else:
-        results_df_mice = pd.DataFrame(columns=['Imputation Method'])
+        results_df_mice = pd.DataFrame()
     
     if not results_df_hybrid.empty:
-        results_df_hybrid.insert(0, 'Imputation Method', 'Hybrid')
+        results_df_hybrid = results_df_hybrid.copy()
+        results_df_hybrid['Imputation Method'] = 'Hybrid'
     else:
-        results_df_hybrid = pd.DataFrame(columns=['Imputation Method'])
+        results_df_hybrid = pd.DataFrame()
     
     if not results_df_simple.empty:
-        results_df_simple.insert(0, 'Imputation Method', 'Simple Mean')
+        results_df_simple = results_df_simple.copy()
+        results_df_simple['Imputation Method'] = 'Simple Mean'
     else:
-        results_df_simple = pd.DataFrame(columns=['Imputation Method'])
+        results_df_simple = pd.DataFrame()
     
-    # Объединяем результаты в нужном порядке
-    results_df = pd.concat([results_df_mice, results_df_hybrid, results_df_simple], axis=0, ignore_index=True)
+    # Собираем все непустые DataFrame для объединения
+    dfs_to_concat = [df for df in [results_df_mice, results_df_hybrid, results_df_simple] if not df.empty]
+    
+    if not dfs_to_concat:
+        print("❌ ОШИБКА: Нет результатов для объединения")
+        return None
+    
+    # Объединяем результаты - используем outer join для разных колонок
+    try:
+        results_df = pd.concat(dfs_to_concat, axis=0, ignore_index=True, sort=False)
+    except Exception as concat_error:
+        print(f"❌ Ошибка при объединении DataFrame: {concat_error}")
+        import traceback
+        traceback.print_exc()
+        # Пробуем альтернативный метод - построчное добавление
+        results_df = pd.DataFrame()
+        for df in dfs_to_concat:
+            for _, row in df.iterrows():
+                results_df = pd.concat([results_df, pd.DataFrame([row.to_dict()])], ignore_index=True)
     
     # Добавляем строку с документацией
     doc_row = pd.DataFrame([{
         'Imputation Method': 'Documentation',
         'Dependent Variable': 'For detailed description of imputation methods see: Multiple Imputations Readme.txt'
     }])
-    results_df = pd.concat([results_df, doc_row], axis=0, ignore_index=True)
+    results_df = pd.concat([results_df, doc_row], axis=0, ignore_index=True, sort=False)
     
     # Create unique folder for this analysis
     if output_dir is None:
