@@ -38,4 +38,6 @@ RUN mkdir -p temp results
 EXPOSE 8000
 
 # Run with gunicorn for production
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "2", "--timeout", "300", "app:app"]
+# Using 1 worker because jobs are stored in memory (not shared between workers)
+# With multiple workers, a job created in worker 1 won't be found by worker 2
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "1", "--threads", "4", "--timeout", "300", "app:app"]
